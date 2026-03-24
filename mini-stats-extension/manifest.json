@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Mini Stats Capture",
+  "version": "2.1.0",
+  "description": "Captura os valores exibidos na pagina atual e envia para a API.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "Capturar estatisticas",
+    "default_popup": "popup.html"
+  }
+}

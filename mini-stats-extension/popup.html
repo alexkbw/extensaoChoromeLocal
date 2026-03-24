@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Stats</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="top">
+    <label class="room-label">
+      Sala
+      <input id="room" class="room-input" type="text" placeholder="Ex: 25f7dd6c, 192.168.1.75 ou 192.168.1.75|TOKEN">
+    </label>
+    <button id="toggleBtn" class="toggle-btn stopped">Iniciar</button>
+  </header>
+
+  <main class="board">
+    <div id="numbers" class="numbers">Carregando...</div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <a
+    class="analysis-link"
+    href="https://roletacorsetor.lovable.app/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Abrir painel de analise
+  </a>
+
+  <script src="popup.js"></script>
+</body>
+</html>
