@@ -1,10 +1,39 @@
-// background.js - receives numbers from content_script and sends to API
 
-const IP_DEFAULT_PORT = 3000;
-const IP_DEFAULT_ORIGIN = "app-externo";
-const IP_DEFAULT_TOKEN = "96873496";
+// background.js - Local state management without API sending
 
-let sending = false;
+const sequenciaRoleta = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+
+let sessionOrdemAtraso = [12, 24, 36];
+let sessionEstados = [];
+let sessionDirecao = 'horário';
+let sessionLastNum = null;
+
+// Persistence
+chrome.storage.local.get(["sessionOrdemAtraso", "sessionEstados", "sessionDirecao", "lastNum"], (data) => {
+  if (data.sessionOrdemAtraso) sessionOrdemAtraso = data.sessionOrdemAtraso;
+  if (data.sessionEstados) sessionEstados = data.sessionEstados;
+  if (data.sessionDirecao) sessionDirecao = data.sessionDirecao;
+  if (data.lastNum) sessionLastNum = parseInt(data.lastNum);
+  
+  // Clear any old API status messages
+  chrome.storage.local.set({ lastStatus: "Pronto.", lastStatusType: "" });
+});
+
+// Logic function
+function calcularDistancia(numeroAnterior, numeroAtual, direcao) {
+    const posAnterior = sequenciaRoleta.indexOf(numeroAnterior);
+    const posAtual = sequenciaRoleta.indexOf(numeroAtual);
+    if (posAnterior === -1 || posAtual === -1) return 36;
+    let distancia;
+    if (direcao === 'horário') {
+        distancia = posAtual >= posAnterior ? posAtual - posAnterior : (37 - posAnterior) + posAtual;
+    } else {
+        distancia = posAnterior >= posAtual ? posAnterior - posAtual : posAnterior + (37 - posAtual);
+    }
+    if (distancia <= 12) return 12;
+    if (distancia <= 24) return 24;
+    return 36;
+}
 
 // Receive numbers from content script
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -15,12 +44,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "GET_STATUS") {
-    chrome.storage.local.get(["lastStatus", "lastStatusType", "lastNumbers", "running"], (data) => {
+    chrome.storage.local.get(["lastStatus", "lastStatusType", "lastNumbers", "running", "sessionEstados", "sessionDirecao", "sessionOrdemAtraso"], (data) => {
       sendResponse({
         status: data.lastStatus || "",
         statusType: data.lastStatusType || "",
         numbers: data.lastNumbers || [],
         running: !!data.running,
+        sessionEstados: data.sessionEstados || [],
+        sessionDirecao: data.sessionDirecao || 'horário',
+        sessionOrdemAtraso: data.sessionOrdemAtraso || [12, 24, 36]
       });
     });
     return true;
@@ -28,7 +60,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "START") {
     chrome.storage.local.set({ running: true }, () => {
-      setStatus("Iniciado. Aguardando numeros...", "ok");
+      setStatus("Monitoramento ativo.", "ok");
       sendResponse({ running: true });
     });
     return true;
@@ -36,185 +68,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "STOP") {
     chrome.storage.local.set({ running: false }, () => {
-      setStatus("Parado.", "");
+      setStatus("Pausado.", "");
       sendResponse({ running: false });
     });
     return true;
-  }
-
-  if (msg.type === "ROOM_CHANGED") {
-    chrome.storage.local.set({ lastSig: "", lastNum: "" });
-    sendResponse({ ok: true });
-    return false;
   }
 });
 
 async function handleNumbersUpdate(numbers) {
   try {
-    const data = await chrome.storage.local.get(["room", "running", "lastSig", "lastNum"]);
-
+    const data = await chrome.storage.local.get(["running"]);
     if (!data.running) return;
 
-    // Save numbers for popup display
     await chrome.storage.local.set({ lastNumbers: numbers });
-
-    const room = (data.room || "").trim();
-    if (!room) {
-      setStatus("Sala nao configurada.", "");
-      return;
-    }
-
-    if (!numbers || !numbers.length) {
-      setStatus("0 itens encontrados.", "");
-      return;
-    }
 
     const current = numbers.find((n) => !n.disabled) || numbers[0];
     if (!current || !current.value) return;
 
-    // Dedup
-    if (current.value === data.lastNum) return;
+    const currentVal = parseInt(current.value);
+    const isNewNumber = currentVal !== sessionLastNum;
 
-    const signature = numbers.map((n) => n.value).join(",");
-    if (signature === data.lastSig) return;
-
-    if (sending) return;
-    sending = true;
-
-    try {
-      const target = parseSalaTarget(room);
-      await sendNumber(target, current.value);
-      await chrome.storage.local.set({ lastSig: signature, lastNum: current.value });
-    } finally {
-      sending = false;
+    if (isNewNumber) {
+      if (sessionLastNum !== null) {
+        const dist = calcularDistancia(sessionLastNum, currentVal, sessionDirecao);
+        let estado;
+        if (dist === sessionOrdemAtraso[0]) {
+          estado = 'repeticao';
+        } else if (dist === sessionOrdemAtraso[2]) {
+          estado = 'atrasado';
+          sessionOrdemAtraso = [dist, sessionOrdemAtraso[0], sessionOrdemAtraso[1]];
+        } else {
+          estado = 'intermediario';
+          sessionOrdemAtraso = [dist, sessionOrdemAtraso[0], sessionOrdemAtraso[2]];
+        }
+        sessionEstados.push(estado);
+        sessionDirecao = (sessionDirecao === 'horário') ? 'anti-horário' : 'horário';
+      }
+      sessionLastNum = currentVal;
+      
+      setStatus(`Último número: ${currentVal}`, "ok");
     }
+
+    await chrome.storage.local.set({ 
+      lastNumbers: numbers,
+      sessionEstados: sessionEstados,
+      sessionDirecao: sessionDirecao,
+      sessionOrdemAtraso: sessionOrdemAtraso,
+      lastNum: sessionLastNum
+    });
+
   } catch (err) {
     console.error("handleNumbersUpdate error:", err);
-    setStatus("Erro: " + err.message, "error");
   }
-}
-
-function parseSalaTarget(rawSala) {
-  const sala = (rawSala || "").trim();
-
-  // Detect Supabase URL template (contains supabase.co or has [0-36] placeholder)
-  if (sala.startsWith("http") && sala.includes("[0-36]")) {
-    return { mode: "url", urlTemplate: sala };
-  }
-
-  const [addressPart, ...tokenParts] = sala.split("|");
-  const address = (addressPart || "").trim();
-  const token = tokenParts.join("|").trim();
-
-  const parsedAddress = parseIpAddress(address);
-  if (!parsedAddress) {
-    // Fallback: treat as a URL template without placeholder (legacy room ID not supported anymore)
-    return { mode: "url", urlTemplate: sala };
-  }
-
-  return {
-    mode: "ip",
-    ip: parsedAddress.ip,
-    port: parsedAddress.port,
-    token,
-  };
-}
-
-function parseIpAddress(address) {
-  if (!address) return null;
-
-  if (address.startsWith("http://") || address.startsWith("https://")) {
-    try {
-      const url = new URL(address);
-      if (!isValidIPv4(url.hostname)) return null;
-      const parsedPort = url.port ? Number(url.port) : IP_DEFAULT_PORT;
-      if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) return null;
-      return { ip: url.hostname, port: parsedPort };
-    } catch {
-      return null;
-    }
-  }
-
-  const [ip, portRaw] = address.split(":");
-  if (!isValidIPv4(ip)) return null;
-
-  const port = portRaw ? Number(portRaw) : IP_DEFAULT_PORT;
-  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
-
-  return { ip, port };
-}
-
-function isValidIPv4(value) {
-  const parts = String(value || "").split(".");
-  if (parts.length !== 4) return false;
-
-  return parts.every((part) => {
-    if (!/^\d{1,3}$/.test(part)) return false;
-    const n = Number(part);
-    return n >= 0 && n <= 255;
-  });
-}
-
-async function sendNumber(target, number) {
-  if (target.mode === "ip") {
-    return sendNumberToIp(target, number);
-  }
-  return sendNumberToUrl(target.urlTemplate, number);
-}
-
-async function sendNumberToUrl(urlTemplate, number) {
-  // Replace [0-36] placeholder with actual number
-  const finalUrl = urlTemplate.replace("[0-36]", String(Number(number)));
-
-  const roomMatch = urlTemplate.match(/room=([^&]+)/);
-  const room = roomMatch ? roomMatch[1] : "";
-
-  const resp = await fetch(finalUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ room, number: Number(number) }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    setStatus(`Erro HTTP ${resp.status}`, "error");
-    throw new Error(`HTTP ${resp.status} ${text}`);
-  }
-
-  const result = await resp.json().catch(() => ({}));
-  if (result?.success) {
-    // Extract room from URL for display
-    const roomMatch = urlTemplate.match(/room=([^&]+)/);
-    const roomDisplay = roomMatch ? roomMatch[1] : "API";
-    setStatus(`Enviado: ${number} -> sala ${roomDisplay}`, "ok");
-    return;
-  }
-
-  setStatus("Resposta inesperada da API.", "error");
-  throw new Error("API response did not include success=true");
-}
-
-async function sendNumberToIp(target, number) {
-  const url = new URL(`http://${target.ip}:${target.port}/api/numero`);
-  const token = target.token || IP_DEFAULT_TOKEN;
-  url.searchParams.set("token", token);
-
-  const resp = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      numero: Number(number),
-      origem: IP_DEFAULT_ORIGIN,
-    }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    setStatus(`Erro HTTP ${resp.status} no IP ${target.ip}`, "error");
-    throw new Error(`HTTP ${resp.status} ${text}`.trim());
-  }
-
-  setStatus(`Enviado: ${number} -> IP ${target.ip}:${target.port}`, "ok");
 }
 
 function setStatus(msg, type) {

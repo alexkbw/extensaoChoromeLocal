@@ -72,6 +72,8 @@ function scrapeNumbers() {
 }
 
 function checkAndSend() {
+  if (!chrome.runtime?.id) return;
+
   const numbers = scrapeNumbers();
   if (!numbers || !numbers.length) return;
 
@@ -80,11 +82,19 @@ function checkAndSend() {
 
   lastSignature = signature;
 
-  chrome.runtime.sendMessage({ type: "NUMBERS_UPDATE", numbers }, () => {
-    if (chrome.runtime.lastError) {
-      // background might not be ready yet, ignore
-    }
-  });
+  try {
+    if (!chrome.runtime?.id) return;
+
+    chrome.runtime.sendMessage({ type: "NUMBERS_UPDATE", numbers }, () => {
+      // Check if context is still valid inside callback
+      if (!chrome.runtime?.id) return;
+      if (chrome.runtime.lastError) {
+        // background might not be ready yet, ignore
+      }
+    });
+  } catch (e) {
+    // Ignore context invalidated errors
+  }
 }
 
 function findContainer() {

@@ -8,27 +8,25 @@
 </head>
 <body>
   <header class="top">
-    <label class="room-label">
-      Sala
-      <input id="room" class="room-input" type="text" placeholder="URL da API com [0-36] ou IP">
-    </label>
+    <div class="logo">Mini Stats</div>
     <button id="toggleBtn" class="toggle-btn stopped">Iniciar</button>
   </header>
 
   <main class="board">
     <div id="numbers" class="numbers">Carregando...</div>
+    <div id="states-summary" class="groups">
+      <div class="group-item">Rep: <span id="rep-count">0</span></div>
+      <div class="group-item">Int: <span id="int-count">0</span></div>
+      <div class="group-item">Atr: <span id="atr-count">0</span></div>
+    </div>
     <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="sugestao-container" class="sugestao-container" style="display:none;">
+      <div class="sugestao-header">Sugestão: <span id="sugestao-tipo"></span></div>
+      <div id="sugestao-numeros" class="sugestao-numeros"></div>
+    </div>
   </main>
 
-  <a
-    class="analysis-link"
-    href="https://roletacorsetor.lovable.app/"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    Abrir painel de analise
-  </a>
-
+  <script src="engine.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
