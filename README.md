@@ -1,0 +1,1 @@
+coloque aqui como é feita o cálculo dos estados,qual a regra para exibir a sugestão,roletas suportadas,pragmaticpay,evolution,creedroms; coloque também uma pequena tabela de martingale de ate 5 entradas iniciando em 1unidade
