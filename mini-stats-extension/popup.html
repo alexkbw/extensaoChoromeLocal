@@ -3,25 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mini Stats</title>
+  <title>Mini Stats • Premium</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <header class="top">
-    <div class="logo">Mini Stats</div>
+    <div class="logo">⚡ Mini Stats</div>
     <button id="toggleBtn" class="toggle-btn stopped">Iniciar</button>
   </header>
 
   <main class="board">
     <div id="numbers" class="numbers">Carregando...</div>
+    
     <div id="states-summary" class="groups">
-      <div class="group-item">Rep: <span id="rep-count">0</span></div>
-      <div class="group-item">Int: <span id="int-count">0</span></div>
-      <div class="group-item">Atr: <span id="atr-count">0</span></div>
+      <div class="group-item">
+        <label>Rep</label>
+        <span id="rep-count">0</span>
+      </div>
+      <div class="group-item">
+        <label>Int</label>
+        <span id="int-count">0</span>
+      </div>
+      <div class="group-item">
+        <label>Atr</label>
+        <span id="atr-count">0</span>
+      </div>
     </div>
+
     <div id="status" class="status" role="status" aria-live="polite"></div>
+
     <div id="sugestao-container" class="sugestao-container" style="display:none;">
-      <div class="sugestao-header">Sugestão: <span id="sugestao-tipo"></span></div>
+      <div class="sugestao-header">💡 Sugestão: <span id="sugestao-tipo"></span></div>
       <div id="sugestao-numeros" class="sugestao-numeros"></div>
     </div>
   </main>
