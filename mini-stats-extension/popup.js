@@ -144,4 +144,3 @@ function updateAnalysisDisplay(sugestao) {
 }
 
 // Remove old updateGroups and updateAnalysis functions if they were here
-
