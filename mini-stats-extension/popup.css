@@ -267,7 +267,7 @@ body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 12px;
+  padding: 8px;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(15px);
   border-radius: 12px;
@@ -276,14 +276,15 @@ body {
     0 8px 32px rgba(0, 0, 0, 0.2),
     0 0 30px rgba(0, 255, 136, 0.1);
   width: 100%;
+  margin-top: 0;
 }
 
 .group-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  padding: 6px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -297,7 +298,7 @@ body {
 }
 
 .group-item label {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--muted);
@@ -305,7 +306,7 @@ body {
 }
 
 .group-item span {
-  font-size: 20px;
+  font-size: 18px;
   color: #fff;
   font-weight: 800;
   text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
