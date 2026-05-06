@@ -3,7 +3,7 @@
 //   1) .mini-statistics-number  (original)
 //   2) [data-testid="single-result"]  (new site)
 
-const MAX_NUMBERS = 7;
+const MAX_NUMBERS = 16;
 
 let lastSignature = "";
 let observerStarted = false;
